@@ -1,0 +1,7 @@
+[project]
+name = "ntp-server"
+version = "1.0.0"
+description = "NTP server"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
