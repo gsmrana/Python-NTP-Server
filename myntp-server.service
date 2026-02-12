@@ -1,0 +1,16 @@
+[Unit]
+Description=NTP Server in Python
+After=network.target
+
+[Service]
+ExecStart=/srv/Python-NTP-Server/.venv/bin/python ntp_server.py 1123
+WorkingDirectory=/srv/Python-NTP-Server
+Restart=on-failure
+User=mega
+Group=mega
+#StandardOutput=null
+#StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

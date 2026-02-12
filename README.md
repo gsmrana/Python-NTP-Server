@@ -91,6 +91,17 @@ ntpdate -q -p 1 localhost -u 1123
 w32tm /stripchart /computer:localhost /dataonly /samples:1
 ```
 
+## Linux Systemd Service
+
+Create a systemd service
+
+```
+uv sync
+sudo cp script/myntp-server.service /etc/systemd/system/myntp-server.service
+sudo systemctl daemon-reload
+sudo systemctl restart myntp-server.service
+```
+
 ## Limitations
 
 - Basic implementation for educational purposes
