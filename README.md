@@ -97,7 +97,7 @@ Create a systemd service
 
 ```
 uv sync
-sudo cp script/myntp-server.service /etc/systemd/system/myntp-server.service
+sudo cp myntp-server.service /etc/systemd/system/myntp-server.service
 sudo systemctl daemon-reload
 sudo systemctl restart myntp-server.service
 ```
