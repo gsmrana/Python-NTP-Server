@@ -13,6 +13,20 @@ from datetime import datetime
 NTP_PACKET_FORMAT = "!B B B b 11I"
 NTP_UNIX_OFFSET = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
 
+def get_modular_delta(t_new, t_old, modulus=2**32):
+    """
+    Calculates the signed difference (t_new - t_old) 
+    accounting for a single 32-bit overflow.
+    """
+    diff = t_new - t_old
+
+    if diff > modulus / 2:
+        diff -= modulus
+    elif diff < -modulus / 2:
+        diff += modulus
+        
+    return diff
+
 def get_current_unix_time_seconds():
     """Get the current time in seconds since the Unix epoch."""
     return time.time()
@@ -20,6 +34,10 @@ def get_current_unix_time_seconds():
 def ntp_to_unix_time_seconds(timestamp):
     """Convert NTP timestamp to system timestamp."""
     return timestamp - NTP_UNIX_OFFSET
+
+def unix_to_ntp_time_seconds(timestamp):
+    """Convert NTP timestamp to system timestamp."""
+    return timestamp + NTP_UNIX_OFFSET
 
 def get_ntp_time(host='localhost', port=123):
     """
@@ -52,11 +70,11 @@ def get_ntp_time(host='localhost', port=123):
         0,           # Reference ID
         0,           # Reference Timestamp (integer part)
         0,           # Reference Timestamp (fraction part)
-        0,           # Origin Timestamp (integer part)
+        int(get_current_unix_time_seconds() + NTP_UNIX_OFFSET),  # Origin Timestamp (integer part)
         0,           # Origin Timestamp (fraction part)
         0,           # Receive Timestamp (integer part)
         0,           # Receive Timestamp (fraction part)
-        int(get_current_unix_time_seconds() + NTP_UNIX_OFFSET),  # Transmit Timestamp (integer part)
+        0,           # Transmit Timestamp (integer part)
         0            # Transmit Timestamp (fraction part)
     )
     
@@ -73,18 +91,23 @@ def get_ntp_time(host='localhost', port=123):
             unpacked = struct.unpack(NTP_PACKET_FORMAT, response[0:struct.calcsize(NTP_PACKET_FORMAT)])
             
             # Extract transmit timestamp (when server sent the response)
-            transmit_timestamp_int = unpacked[13]
-            transmit_timestamp_frac = unpacked[14]
+            t0 = unpacked[9]
+            t1 = unpacked[11]
+            t2 = unpacked[13]
+            t3 = unix_to_ntp_time_seconds(get_current_unix_time_seconds())
+            
             
             # Convert to system time
-            ntp_time = transmit_timestamp_int + (transmit_timestamp_frac / 2**32)
-            system_time = ntp_to_unix_time_seconds(ntp_time)
             
             # Get local time for comparison
-            local_time = get_current_unix_time_seconds()
-            offset = system_time - local_time
+            t1_t0 = get_modular_delta(t1, t0)
+            t2_t3 = get_modular_delta(t2, t3)
+            offset = (t1_t0 + t2_t3)/2
             
             print(f"\nResponse from {address[0]}:{address[1]}")
+            print(f"t0: {t0}, t1: {t1}, t2: {t2}, t3: {t3}")
+            local_time = get_current_unix_time_seconds()
+            system_time = local_time + offset
             print(f"NTP Time: {datetime.fromtimestamp(system_time).strftime('%Y-%m-%d %H:%M:%S.%f')}")
             print(f"Local Time: {datetime.fromtimestamp(local_time).strftime('%Y-%m-%d %H:%M:%S.%f')}")
             print(f"Offset: {offset:.6f} seconds")
@@ -102,6 +125,7 @@ def get_ntp_time(host='localhost', port=123):
         return None
     finally:
         client.close()
+        
 
 if __name__ == "__main__":
     import sys
