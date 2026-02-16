@@ -9,7 +9,9 @@ import time
 import socket
 import struct
 from datetime import timedelta
+from datetime import datetime
 
+from server_config import *
 
 # NTP packet format (48 bytes)
 # First byte contains Leap Indicator (2 bits), Version (3 bits), and Mode (3 bits)
@@ -23,12 +25,16 @@ def get_current_unix_time_seconds():
     #return time.time() + timedelta(days=365, hours=0, minutes=0, seconds=0).total_seconds()
 
     return time.time()
+def convert_datetime_to_seconds(dt):
+    """Convert DateTime to unix Timestamp"""
+    dt = datetime(*dt)
+    return dt.timestamp()
 
 def unix_to_ntp_time_seconds(timestamp):
     """Convert a system timestamp to NTP timestamp format."""
     return int(timestamp + NTP_UNIX_OFFSET)
 
-def create_ntp_response(data):
+def create_ntp_response(data, send_curr_time = True, time_param = 0):
     """
     Create an NTP response packet.
     
@@ -42,8 +48,11 @@ def create_ntp_response(data):
     unpacked = struct.unpack(NTP_PACKET_FORMAT, data[0:struct.calcsize(NTP_PACKET_FORMAT)])
     
     # Get current time
-    current_time = get_current_unix_time_seconds()
-    ntp_time = unix_to_ntp_time_seconds(current_time)
+    timestamp = time_param
+    if(send_curr_time):
+        timestamp = get_current_unix_time_seconds()
+        
+    ntp_time = unix_to_ntp_time_seconds(timestamp)
     
     # Build response packet
     # LI (0), Version (4), Mode (4 = server)
@@ -66,22 +75,20 @@ def create_ntp_response(data):
     ref_id = int.from_bytes(b'GPS\x00', byteorder='big')
     
     # Reference timestamp (when server clock was last set)
-    ref_timestamp_int = ntp_time
-    ref_timestamp_frac = int((current_time % 1) * 2**32)
+    ref_timestamp_int = ntp_time % (2**32)
+    ref_timestamp_frac = int((timestamp % 1) * 2**32)
     
     # Origin timestamp (from client request)
-    origin_timestamp_int = unpacked[10]
-    origin_timestamp_frac = unpacked[11]
+    origin_timestamp_int = unpacked[9]
+    origin_timestamp_frac = unpacked[10]
     
     # Receive timestamp (when request arrived)
-    recv_timestamp_int = ntp_time
-    recv_timestamp_frac = int((current_time % 1) * 2**32)
+    recv_timestamp_int = ntp_time % (2**32)
+    recv_timestamp_frac = int((timestamp % 1) * 2**32)
     
     # Transmit timestamp (when response is sent)
-    current_time = get_current_unix_time_seconds()
-    ntp_time = unix_to_ntp_time_seconds(current_time)
-    transmit_timestamp_int = ntp_time
-    transmit_timestamp_frac = int((current_time % 1) * 2**32)
+    transmit_timestamp_int = ntp_time % (2**32)
+    transmit_timestamp_frac = int((timestamp % 1) * 2**32)
     
     # Pack the response
     response = struct.pack(
@@ -132,7 +139,7 @@ def run_ntp_server(host='0.0.0.0', port=123):
                     print(f"Received NTP request from {address[0]}:{address[1]}")
                     
                     # Create and send response
-                    response = create_ntp_response(data)
+                    response = create_ntp_response(data, SEND_CURRENT_TIME, convert_datetime_to_seconds(SPECIFIC_TIME) )
                     server_socket.sendto(response, address)
                     print(f"Sent NTP response to {address[0]}:{address[1]}")
                 else:
