@@ -4,19 +4,29 @@ Simple NTP Server Implementation
 This server responds to NTP client requests with the current system time.
 """
 
+import sys
+import time
 import socket
 import struct
-import time
-import sys
+from datetime import timedelta
+
 
 # NTP packet format (48 bytes)
 # First byte contains Leap Indicator (2 bits), Version (3 bits), and Mode (3 bits)
 NTP_PACKET_FORMAT = "!B B B b 11I"
-NTP_DELTA = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
+NTP_UNIX_OFFSET = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
 
-def system_to_ntp_time(timestamp):
+def get_current_unix_time_seconds():
+    """Get the current time in seconds since the Unix epoch."""
+    
+    # simulate future time for testing purposes
+    #return time.time() + timedelta(days=365, hours=0, minutes=0, seconds=0).total_seconds()
+
+    return time.time()
+
+def unix_to_ntp_time_seconds(timestamp):
     """Convert a system timestamp to NTP timestamp format."""
-    return int(timestamp + NTP_DELTA)
+    return int(timestamp + NTP_UNIX_OFFSET)
 
 def create_ntp_response(data):
     """
@@ -32,8 +42,8 @@ def create_ntp_response(data):
     unpacked = struct.unpack(NTP_PACKET_FORMAT, data[0:struct.calcsize(NTP_PACKET_FORMAT)])
     
     # Get current time
-    current_time = time.time()
-    ntp_time = system_to_ntp_time(current_time)
+    current_time = get_current_unix_time_seconds()
+    ntp_time = unix_to_ntp_time_seconds(current_time)
     
     # Build response packet
     # LI (0), Version (4), Mode (4 = server)
@@ -68,8 +78,8 @@ def create_ntp_response(data):
     recv_timestamp_frac = int((current_time % 1) * 2**32)
     
     # Transmit timestamp (when response is sent)
-    current_time = time.time()
-    ntp_time = system_to_ntp_time(current_time)
+    current_time = get_current_unix_time_seconds()
+    ntp_time = unix_to_ntp_time_seconds(current_time)
     transmit_timestamp_int = ntp_time
     transmit_timestamp_frac = int((current_time % 1) * 2**32)
     

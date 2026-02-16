@@ -9,12 +9,17 @@ import struct
 import time
 from datetime import datetime
 
-NTP_PACKET_FORMAT = "!B B B b 11I"
-NTP_DELTA = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
 
-def ntp_to_system_time(timestamp):
+NTP_PACKET_FORMAT = "!B B B b 11I"
+NTP_UNIX_OFFSET = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
+
+def get_current_unix_time_seconds():
+    """Get the current time in seconds since the Unix epoch."""
+    return time.time()
+
+def ntp_to_unix_time_seconds(timestamp):
     """Convert NTP timestamp to system timestamp."""
-    return timestamp - NTP_DELTA
+    return timestamp - NTP_UNIX_OFFSET
 
 def get_ntp_time(host='localhost', port=123):
     """
@@ -51,7 +56,7 @@ def get_ntp_time(host='localhost', port=123):
         0,           # Origin Timestamp (fraction part)
         0,           # Receive Timestamp (integer part)
         0,           # Receive Timestamp (fraction part)
-        int(time.time() + NTP_DELTA),  # Transmit Timestamp (integer part)
+        int(get_current_unix_time_seconds() + NTP_UNIX_OFFSET),  # Transmit Timestamp (integer part)
         0            # Transmit Timestamp (fraction part)
     )
     
@@ -73,10 +78,10 @@ def get_ntp_time(host='localhost', port=123):
             
             # Convert to system time
             ntp_time = transmit_timestamp_int + (transmit_timestamp_frac / 2**32)
-            system_time = ntp_to_system_time(ntp_time)
+            system_time = ntp_to_unix_time_seconds(ntp_time)
             
             # Get local time for comparison
-            local_time = time.time()
+            local_time = get_current_unix_time_seconds()
             offset = system_time - local_time
             
             print(f"\nResponse from {address[0]}:{address[1]}")
