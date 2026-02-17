@@ -24,11 +24,11 @@ NTP_MAX_VALUE = (2**32)  # Maximum value for 32-bit unsigned integer
 
 def unix_to_ntp_time_seconds(timestamp):
     """Convert a system timestamp to NTP timestamp format."""
-    return int(timestamp + NTP_UNIX_OFFSET)
+    return int((timestamp + NTP_UNIX_OFFSET) % NTP_MAX_VALUE)
 
 def ntp_to_unix_time_seconds(timestamp):
     """Convert NTP timestamp to system timestamp."""
-    return int(timestamp - NTP_UNIX_OFFSET)
+    return int((timestamp - NTP_UNIX_OFFSET) % NTP_MAX_VALUE)
 
 def create_ntp_response(data):
     """
