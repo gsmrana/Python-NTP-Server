@@ -12,14 +12,20 @@ from datetime import datetime
 
 NTP_PACKET_FORMAT = "!B B B b 11I"
 NTP_UNIX_OFFSET = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
+NTP_MAX_VALUE = (2**32)  # Maximum value for 32-bit unsigned integer
+
 
 def get_current_unix_time_seconds():
     """Get the current time in seconds since the Unix epoch."""
     return time.time()
 
+def unix_to_ntp_time_seconds(timestamp):
+    """Convert a system timestamp to NTP timestamp format."""
+    return int(timestamp + NTP_UNIX_OFFSET)
+
 def ntp_to_unix_time_seconds(timestamp):
     """Convert NTP timestamp to system timestamp."""
-    return timestamp - NTP_UNIX_OFFSET
+    return int(timestamp - NTP_UNIX_OFFSET)
 
 def get_ntp_time(host='localhost', port=123):
     """
@@ -56,7 +62,7 @@ def get_ntp_time(host='localhost', port=123):
         0,           # Origin Timestamp (fraction part)
         0,           # Receive Timestamp (integer part)
         0,           # Receive Timestamp (fraction part)
-        int(get_current_unix_time_seconds() + NTP_UNIX_OFFSET),  # Transmit Timestamp (integer part)
+        int(unix_to_ntp_time_seconds(get_current_unix_time_seconds())), # Transmit Timestamp (integer part)
         0            # Transmit Timestamp (fraction part)
     )
     
@@ -77,7 +83,7 @@ def get_ntp_time(host='localhost', port=123):
             transmit_timestamp_frac = unpacked[14]
             
             # Convert to system time
-            ntp_time = transmit_timestamp_int + (transmit_timestamp_frac / 2**32)
+            ntp_time = transmit_timestamp_int + (transmit_timestamp_frac / NTP_MAX_VALUE)
             system_time = ntp_to_unix_time_seconds(ntp_time)
             
             # Get local time for comparison
@@ -85,9 +91,9 @@ def get_ntp_time(host='localhost', port=123):
             offset = system_time - local_time
             
             print(f"\nResponse from {address[0]}:{address[1]}")
-            print(f"NTP Time: {datetime.fromtimestamp(system_time).strftime('%Y-%m-%d %H:%M:%S.%f')}")
+            print(f"NTP Time  : {datetime.fromtimestamp(system_time).strftime('%Y-%m-%d %H:%M:%S.%f')}")
             print(f"Local Time: {datetime.fromtimestamp(local_time).strftime('%Y-%m-%d %H:%M:%S.%f')}")
-            print(f"Offset: {offset:.6f} seconds")
+            print(f"Deviation : {offset:.6f} seconds (ntp_time - local_time)")
             
             return datetime.fromtimestamp(system_time)
         else:
@@ -115,6 +121,5 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         port = int(sys.argv[2])
          
-    print(f"NTP Client Test")
-    print(f"===============")
+    print(f"========== NTP Client ==========")
     get_ntp_time(host, port)
