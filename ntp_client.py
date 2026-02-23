@@ -4,12 +4,17 @@ Simple NTP Client
 Test client to query an NTP server and display the time.
 """
 
+import sys
 import socket
 import struct
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
+PRINT_NTP_PACKETS = True
+DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
+
+NTP_PACKET_SIZE = 48
 NTP_PACKET_FORMAT = "!B B B b 11I"
 NTP_UNIX_OFFSET = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
 NTP_MAX_VALUE = (2**32)  # Maximum value for 32-bit unsigned integer
@@ -69,12 +74,14 @@ def get_ntp_time(host='localhost', port=123):
     try:
         # Send request
         print(f"Querying NTP server at {host}:{port}...")
+        if PRINT_NTP_PACKETS:
+            print(f"NTP Request packet (hex): {data.hex()}")
         client.sendto(data, (host, port))
         
         # Receive response
         response, address = client.recvfrom(1024)
         
-        if len(response) >= 48:
+        if len(response) >= NTP_PACKET_SIZE:
             # Unpack response
             unpacked = struct.unpack(NTP_PACKET_FORMAT, response[0:struct.calcsize(NTP_PACKET_FORMAT)])
             
@@ -91,13 +98,18 @@ def get_ntp_time(host='localhost', port=123):
             offset = system_time - local_time
             
             print(f"\nResponse from {address[0]}:{address[1]}")
-            print(f"NTP Time  : {datetime.fromtimestamp(system_time).strftime('%Y-%m-%d %H:%M:%S.%f')}")
-            print(f"Local Time: {datetime.fromtimestamp(local_time).strftime('%Y-%m-%d %H:%M:%S.%f')}")
-            print(f"Deviation : {offset:.6f} seconds (ntp_time - local_time)")
+            if PRINT_NTP_PACKETS:
+                print(f"NTP Response packet (hex): {response.hex()}")
+
+            print(f"NTP Time  : {datetime.fromtimestamp(system_time).strftime(DATETIME_FORMAT)}")
+            print(f"Local Time: {datetime.fromtimestamp(local_time).strftime(DATETIME_FORMAT)}")
+            print(f"Deviation : {timedelta(seconds=offset)} ({offset:.6f} seconds) {offset > 0 and 'ahead' or 'behind'} of local time")
             
             return datetime.fromtimestamp(system_time)
         else:
             print("Received invalid response")
+            if PRINT_NTP_PACKETS:
+                print(f"Invalid response data (hex): {response.hex()}")
             return None
             
     except socket.timeout:
@@ -110,14 +122,14 @@ def get_ntp_time(host='localhost', port=123):
         client.close()
 
 if __name__ == "__main__":
-    import sys
     host = "localhost"
     port = 1123  # Default to non-privileged port
     
-    # Parse command line arguments
+    # parse host
     if len(sys.argv) > 1:
         host = sys.argv[1]
 
+    # parse port
     if len(sys.argv) > 2:
         port = int(sys.argv[2])
          

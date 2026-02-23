@@ -7,11 +7,16 @@ This server responds to NTP client requests with the current system time.
 import sys
 import socket
 import struct
-from server_config import get_configuration_type, get_current_unix_time_seconds
+from server_config import (
+    PRINT_NTP_PACKETS,
+    get_configuration_type,
+    get_current_unix_time_seconds
+)
 
 
 # NTP packet format (48 bytes)
 # First byte contains Leap Indicator (2 bits), Version (3 bits), and Mode (3 bits)
+NTP_PACKET_SIZE = 48
 NTP_PACKET_FORMAT = "!B B B b 11I"
 NTP_UNIX_OFFSET = 2208988800  # Offset between NTP epoch (1900) and Unix epoch (1970)
 NTP_MAX_VALUE = (2**32)  # Maximum value for 32-bit unsigned integer
@@ -116,7 +121,7 @@ def run_ntp_server(host='0.0.0.0', port=123):
     try:
         # Bind to address and port
         server_socket.bind((host, port))
-        print(f"NTP Server started on {host}:{port}")
+        print(f"NTP Server listening on {host}:{port}")
         print("Waiting for NTP requests... (Press Ctrl+C to stop)")
         
         while True:
@@ -125,15 +130,23 @@ def run_ntp_server(host='0.0.0.0', port=123):
                 data, address = server_socket.recvfrom(1024)
                 
                 # Check if it's a valid NTP request (48 bytes minimum)
-                if len(data) >= 48:
+                if len(data) >= NTP_PACKET_SIZE:
                     print(f"\nReceived NTP request from {address[0]}:{address[1]}")
+                    print(f"NTP Server will send -> {get_configuration_type()}")
                     
-                    # Create and send response
+                    if PRINT_NTP_PACKETS:
+                        print(f"NTP Request packet (hex) : {data.hex()}")
+                    
                     response = create_ntp_response(data)
+                    if PRINT_NTP_PACKETS:
+                        print(f"NTP Response packet (hex): {response.hex()}")
+                    
                     server_socket.sendto(response, address)
                     print(f"Sent NTP response to {address[0]}:{address[1]}")
                 else:
                     print(f"Received invalid packet from {address[0]}:{address[1]} (size: {len(data)} bytes)")
+                    if PRINT_NTP_PACKETS:
+                        print(f"Invalid packet data (hex): {data.hex()}")
             except Exception as e:
                 print(f"Error handling request: {e}")
                 continue
@@ -162,5 +175,5 @@ if __name__ == "__main__":
         port = int(sys.argv[1])      
     
     print(f"========== NTP Server ==========")
-    print(f"Configuration: {get_configuration_type()}")
+    print(f"NTP Server will send -> {get_configuration_type()}")
     run_ntp_server(port=port)

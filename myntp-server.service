@@ -5,12 +5,21 @@ After=network.target
 [Service]
 ExecStart=/srv/Python-NTP-Server/.venv/bin/python ntp_server.py 1123
 WorkingDirectory=/srv/Python-NTP-Server
-Restart=on-failure
-User=mega
-Group=mega
+Restart=always
+RestartSec=5
+User=root
+Group=root
+
+# System Logging
 #StandardOutput=null
 #StandardError=journal
-Environment=PYTHONUNBUFFERED=1
+
+# Custom File Logging
+StandardOutput=append:/srv/Python-NTP-Server/myntpserver.out.log
+StandardError=append:/srv/Python-NTP-Server/myntpserver.err.log
+
+# Flush logs immediately
+#Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
