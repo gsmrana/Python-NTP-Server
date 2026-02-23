@@ -103,7 +103,8 @@ def get_ntp_time(host='localhost', port=123):
 
             print(f"NTP Time  : {datetime.fromtimestamp(system_time).strftime(DATETIME_FORMAT)}")
             print(f"Local Time: {datetime.fromtimestamp(local_time).strftime(DATETIME_FORMAT)}")
-            print(f"Deviation : {timedelta(seconds=offset)} ({offset:.6f} seconds) {offset > 0 and 'ahead' or 'behind'} of local time")
+            print(f"Offset    : {timedelta(seconds=round(offset))} ({offset:.6f} seconds) "
+                  f"Local Time {offset < 0 and 'ahead' or 'behind'} of NTP time")
             
             return datetime.fromtimestamp(system_time)
         else:

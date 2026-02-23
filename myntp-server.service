@@ -15,11 +15,11 @@ Group=root
 #StandardError=journal
 
 # Custom File Logging
-StandardOutput=append:/srv/Python-NTP-Server/myntpserver.out.log
-StandardError=append:/srv/Python-NTP-Server/myntpserver.err.log
+StandardOutput=append:/srv/Python-NTP-Server/myntp-server.out.log
+StandardError=append:/srv/Python-NTP-Server/myntp-server.err.log
 
 # Flush logs immediately
-#Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target
